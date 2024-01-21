@@ -1,0 +1,13 @@
+#yolov8 library.
+
+open this link and download all requirments.
+https://docs.ultralytics.com/quickstart/
+
+
+* Note: that you have to install requirements.txt in this link after installing Ultralytics.
+
+For using GPU open this link.
+https://pytorch.org/get-started/locally/
+
+# install pillow.
+pip install pillow
