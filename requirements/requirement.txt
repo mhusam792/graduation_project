@@ -72,10 +72,6 @@ facexlib==0.3.0
 fairscale==0.4.13
 faiss-cpu==1.7.3
 fastapi==0.109.2
-fiftyone==0.23.2
-fiftyone-brain==0.14.2
-fiftyone-db==1.1
-fiftyone-db-ubuntu2204==0.4.0
 filelock==3.13.1
 filterpy==1.4.5
 fire==0.5.0
