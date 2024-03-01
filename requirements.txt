@@ -1,6 +1,7 @@
 pyngrok
 fastapi 
 uvicorn 
+cmake
 
 # google translate api
 googletrans==4.0.0-rc1
