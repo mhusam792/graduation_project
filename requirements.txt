@@ -12,7 +12,9 @@ en-core-web-lg @ https://github.com/explosion/spacy-models/releases/download/en_
 
 # yolov8
 ultralytics
-torch torchvision torchaudio
+torch 
+torchvision 
+torchaudio
 
 # ocr
 paddleocr
