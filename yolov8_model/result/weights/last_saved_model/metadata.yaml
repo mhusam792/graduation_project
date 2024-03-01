@@ -1,0 +1,57 @@
+description: Ultralytics last model trained on config.yaml
+author: Ultralytics
+license: AGPL-3.0 https://ultralytics.com/license
+date: '2024-02-11T20:38:10.122821'
+version: 8.1.3
+stride: 32
+task: detect
+batch: 1
+imgsz:
+- 640
+- 640
+names:
+  0: Backpack
+  1: Ball
+  2: Belt
+  3: Bicycle
+  4: Bicycle helmet
+  5: Binoculars
+  6: Book
+  7: Bottle
+  8: Briefcase
+  9: Calculator
+  10: Camera
+  11: Cat
+  12: Computer keyboard
+  13: Computer monitor
+  14: Computer mouse
+  15: Dog
+  16: Doll
+  17: Earrings
+  18: Envelope
+  19: Fashion accessory
+  20: Fedora
+  21: Flashlight
+  22: Football
+  23: Glasses
+  24: Handbag
+  25: Hat
+  26: Headphones
+  27: Human face
+  28: Laptop
+  29: Mobile phone
+  30: Mug
+  31: Necklace
+  32: Pencil case
+  33: Suitcase
+  34: Sun hat
+  35: Sunglasses
+  36: Swim cap
+  37: Tablet computer
+  38: Tie
+  39: Tripod
+  40: Umbrella
+  41: Volleyball (Ball)
+  42: Watch
+  43: helmet
+  44: wallet

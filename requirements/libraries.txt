@@ -1,0 +1,34 @@
+# anaconca initilazation
+conda create -n yolov8 python=3.9
+conda activate yolov8
+
+# first code 
+pip install -r requirement.txt
+
+!pip install pyngrok fastapi uvicorn colabcode
+
+# google translate api
+!pip install googletrans==4.0.0-rc1
+!pip install langdetect
+
+# spacy for comparing text
+!pip install spacy
+!python -m spacy download en_core_web_lg
+
+# yolov8
+!pip install ultralytics
+!pip3 install torch torchvision torchaudio
+
+# ocr
+!pip install paddleocr
+!pip install paddlepaddle
+
+# face recognition 
+!pip install face_recognition
+!pip install python-multipart
+
+# Search Engine
+!pip install DeepImageSearch
+
+# roboflow
+pip install roboflow
