@@ -1,3 +1,8 @@
+cffi
+jinja2
+pytz 
+tzlocal
+rpy2
 absl-py==1.4.0
 aiohttp==3.9.3
 aiosignal==1.3.1
