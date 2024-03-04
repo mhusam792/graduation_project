@@ -93,7 +93,7 @@ class MyApp(FastAPI):
                 return JSONResponse(content={"error": str(e)}, status_code=500)
         
         # change dir
-        @self.post("/find_objects", response_model=FindObjectsResponse, tags=['Comparing Text'])
+        @self.get("/find_objects", response_model=FindObjectsResponse, tags=['Comparing Text'])
         async def find_objects(request: FindObjectsRequest):
             print(request.dict())  # Add this line for debugging
             try:
@@ -120,9 +120,9 @@ class MyApp(FastAPI):
             self.search_engine_instance.create_search_engine(folder_path)
             return JSONResponse(content={"message": "Search engine created successfully."})
 
-        @self.post("/get_similar_images", tags=["Search Engine"])
-        def get_similar_images_api(request: ImageRequest):
-            similar_image_path = self.search_engine_instance.get_similar_images_path(request.image_path)
+        @self.get("/get_similar_images", tags=["Search Engine"])
+        def get_similar_images_api(img: str):
+            similar_image_path = self.search_engine_instance.get_similar_images_path(img)
             return SimilarImagesResponse(similar_images=similar_image_path)
 
         @self.post("/add_images_to_index", tags=["Search Engine"])
@@ -131,22 +131,22 @@ class MyApp(FastAPI):
             return JSONResponse(content=result)
 
         # chang dir
-        @self.post("/find_similar_faces", tags=["Find Similar Faces"])
-        async def find_similar_faces_api(photo: UploadFile = File(...), folder_path: str = "folders/face_identifier/known_face_images"): ############# change path
+        @self.get("/find_similar_faces", tags=["Find Similar Faces"])
+        async def find_similar_faces_api(photo: str, folder_path: str = "folders/face_identifier/known_face_images"): ############# change path
             face_api = FaceAPI(folder_path)
             face_api.load_known_faces()
             result = await face_api.find_similar_faces_api(photo)
             return result
 
-        @self.post("/id", tags=["Card"])
-        async def process_image(photo: UploadFile):
+        @self.get("/id", tags=["Card"])
+        async def process_image(photo: str):
             try:
-                # Save the uploaded image temporarily
-                with open("temp_image.jpg", "wb") as temp_image:
-                    temp_image.write(photo.file.read())
+                # # Save the uploaded image temporarily
+                # with open("temp_image.jpg", "wb") as temp_image:
+                #     temp_image.write(photo.file.read())
 
                 # Process the image using the ImageProcessor
-                result = self.processor.get_final_data("temp_image.jpg")
+                result = self.processor.get_final_data(photo)
 
                 return JSONResponse(content=result, status_code=200)
 
@@ -154,20 +154,20 @@ class MyApp(FastAPI):
                 # Handle exceptions
                 return HTTPException(detail=str(e), status_code=500)
 
-        @self.post("/tamween_card", tags=["Card"])
+        @self.get("/tamween_card", tags=["Card"])
         async def extract_id(image_path: str):
             id_extractor = IDExtractor(image_path)
             final_data = id_extractor.get_final_data()
             return final_data
         
-        @self.post("/license", tags=["Card"])
-        async def process_image(file: UploadFile = File(...)):
-            file_path = f"/tmp/{file.filename}"
-            with open(file_path, "wb") as buffer:
-                buffer.write(file.file.read())
+        @self.get("/license", tags=["Card"])
+        async def process_image(file: str):
+            # file_path = f"/tmp/{file.filename}"
+            # with open(file_path, "wb") as buffer:
+            #     buffer.write(file.file.read())
 
             try:
-                data = get_final_data(file_path)
+                data = get_final_data(file)
                 return JSONResponse(content=data)
             except Exception as e:
                 return JSONResponse(content={"error": str(e)}, status_code=500)
