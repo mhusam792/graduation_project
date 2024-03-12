@@ -39,7 +39,10 @@ class ObjectFinder:
             if obj is not None:
                 obj_doc = self.nlp(obj)
                 similarity_score = find_object_doc.similarity(obj_doc)
-                similarity_scores.append((obj, similarity_score))
+
+                # Only consider matches with similarity scores > 50%
+                if similarity_score >= 0.25:
+                    similarity_scores.append((obj, similarity_score))
             else:
                 similarity_scores.append((None, 0.0))
 
@@ -47,4 +50,3 @@ class ObjectFinder:
         top_matches = sorted_scores[:3]
 
         return top_matches
- 

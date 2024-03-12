@@ -238,7 +238,8 @@ class ImageProcessor:
                     address += i + " "
                 if key == 'regin':
                     regin += i + " "
-        return {"frist name": name, "rest_of_name": rest_of_name, "address": address, "regin": regin}
+        return {"frist name": name.strip(), "rest_of_name": rest_of_name.strip(),
+                 "address": address.strip(), "regin": regin.strip()}
 
     def get_face(self, img_path):
         img1 = cv2.imread(img_path)
@@ -272,7 +273,7 @@ class ImageProcessor:
             id=id.replace(id[5:7], "29")
             new_data['problem']='Date of birth and age will not be correct'
 
-        new_data["id"] = id
+        new_data["id"] = id.strip()
         x = ID(int(id))
         x1 = x.get_BirthDate()
         x2 = x.get_BirthPlace()
@@ -297,6 +298,6 @@ class ImageProcessor:
         face_img_path = f"folders/faces_from_ids/{file_Name}.png"
         cv2.imwrite(face_img_path, face_img)
 
-        new_data["face"] = (face_img_path)
+        new_data["face"] = base_name.strip()
         
         return new_data

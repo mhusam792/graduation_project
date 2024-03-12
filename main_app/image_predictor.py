@@ -11,7 +11,7 @@ class ImagePredictor:
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
         print('Using Device: ', device)
         model = YOLO(model_path)
-        results = model.predict(img_path, device=device, save=True,
+        results = model.predict(img_path, device=device,
                                 show_conf=False, conf=.30, project='folders/runs/detect/prediction')
         return results, model
 

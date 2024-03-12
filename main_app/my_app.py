@@ -1,4 +1,4 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from object_finder import ObjectFinder
@@ -11,16 +11,140 @@ from license import get_final_data
 from egy_plate_recognition import get_Letters_and_nums
 from image_enhacment import *
 from read_any_image import data_corection_, get_data_
-# from text_to_image_genarate import create_img
+from PIL import Image
+import requests
+from io import BytesIO
 import os
+from typing import List
+from bs4 import BeautifulSoup
+import csv
+import numpy as np
+from urllib.parse import urlparse
+
+# from text_to_image_genarate import create_img
+
+
+def download_image(url, folder_path):
+    try:
+        # Create the folder if it doesn't exist
+        os.makedirs(folder_path, exist_ok=True)
+
+        # Extract filename from the URL
+        filename = os.path.basename(urlparse(url).path)
+
+        # Construct the full path to save the image
+        file_path = os.path.join(folder_path, filename)
+
+        # Make a request to the URL
+        response = requests.get(url)
+
+        # Check if the request was successful (status code 200)
+        if response.status_code == 200:
+            # Save the image
+            with open(file_path, 'wb') as file:
+                file.write(response.content)
+
+            print(f"Image downloaded successfully and saved at: {file_path}")
+        else:
+            print(f"Failed to download the image. Status code: {response.status_code}")
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+
+def resize_image(input_path, output_path, new_size):
+    try:
+        # Read the image
+        image = cv2.imread(input_path)
+
+        # Check if the image is not empty
+        if image is not None:
+            # Resize the image
+            resized_image = cv2.resize(image, new_size)
+
+            # Save the resized image
+            cv2.imwrite(output_path, resized_image)
+
+            print(f"Image resized successfully and saved at: {output_path}")
+        else:
+            print("Error: Input image is empty.")
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+def read_image_from_url(url: str) -> Image.Image:
+    try:
+        response = requests.get(url)
+        response.raise_for_status()  # Check for errors in the HTTP response
+
+        image = Image.open(BytesIO(response.content))
+        return image
+
+    except requests.RequestException as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching image from URL: {str(e)}")
+    
+
+def extract_image_info(url):
+    response = requests.get(url)
+    soup = BeautifulSoup(response.text, 'html.parser')
+    table = soup.find('table')
+
+    image_info = []
+    if table:
+        base_url = url.rstrip('/')  # Remove trailing slash from base URL
+        rows = table.find_all('tr')
+        for row in rows[1:]:  # Skip the header row
+            columns = row.find_all('td')
+            image_filename = columns[0].text.strip()
+            full_image_url = f"{base_url}/{image_filename}"
+            image_info.append({'filename': image_filename, 'url': full_image_url})
+
+    return image_info
+
+def download_images(image_info, download_folder):
+    os.makedirs(download_folder, exist_ok=True)
+
+    for info in image_info:
+        response = requests.get(info['url'])
+        image_filename = os.path.join(download_folder, info['filename'])
+
+        with open(image_filename, 'wb') as image_file:
+            image_file.write(response.content)
+
+def save_to_csv(image_info, csv_filename):
+    with open(csv_filename, 'w', newline='') as csvfile:
+        csv_writer = csv.writer(csvfile)
+        csv_writer.writerow(['Image Filename', 'Image URL'])  # Write header
+        for info in image_info:
+            csv_writer.writerow([info['filename'], info['url']])
+
+def update_images_folder(image_info, download_folder):
+    existing_images = set(os.listdir(download_folder))
+
+    for info in image_info:
+        image_filename = info['filename']
+        image_path = os.path.join(download_folder, image_filename)
+
+        if image_filename not in existing_images:
+            # Download the image if it doesn't exist in the folder
+            response = requests.get(info['url'])
+            with open(image_path, 'wb') as image_file:
+                image_file.write(response.content)
+        else:
+            # Remove the image from the folder if it's not in image_info
+            existing_images.remove(image_filename)
+
+    # Delete images in the folder that are not present in image_info
+    for obsolete_image in existing_images:
+        obsolete_image_path = os.path.join(download_folder, obsolete_image)
+        os.remove(obsolete_image_path)
+
 
 class FindObjectsRequest(BaseModel):
     find_object: str
     founded_objects: list
 
 class FindObjectsResponse(BaseModel):
-    original_description: str
-    translated_description: str
     top_matches: list
    
 
@@ -60,7 +184,7 @@ class MyApp(FastAPI):
 
                 prediction_result = self.image_predictor.model_result(
                     model_path=self.model_full_path,
-                    img_path=file
+                    img_path=read_image_from_url(file)
                 )
                 
                 cls = self.image_predictor.return_cls(
@@ -70,7 +194,7 @@ class MyApp(FastAPI):
                 dict_cls = self.image_predictor.count_cls(cls)
 
                 if len(dict_cls) == 0:
-                    founded_objects = "Sorry, We can't figure out what type of item it is?! /n Please choose from this list the type of item in the image."
+                    founded_objects = "Sorry, We can't figure out what type of item it is?! \n Please choose from this list the type of item in the image."
                 else:
                     founded_objects = dict_cls
 
@@ -85,29 +209,28 @@ class MyApp(FastAPI):
                 image_full_path = os.path.join(path_all_images, file)
                 file_name_without_extension = os.path.splitext(os.path.basename(image_full_path))[0]
                 
-                data_from_image = {"objects": founded_objects, "image_path": path_all_images+file_name_without_extension}
+                data_from_image = {"objects": founded_objects}
 
                 return JSONResponse(content=data_from_image)
 
             except Exception as e:
                 return JSONResponse(content={"error": str(e)}, status_code=500)
         
+        # compare text description
         # change dir
-        @self.get("/find_objects", response_model=FindObjectsResponse, tags=['Comparing Text'])
+        @self.post("/find_objects", response_model=FindObjectsResponse, tags=['Comparing Text'])
         async def find_objects(request: FindObjectsRequest):
             print(request.dict())  # Add this line for debugging
             try:
                 if not request.find_object:
                     raise HTTPException(status_code=400, detail="Please provide a description")
 
-                en_find_object, en_founded_objects = self.object_finder.translate_to_english(
-                    find_object=request.find_object, founded_objects=request.founded_objects
-                )
-                top_matches = self.object_finder.compare_objects_similarity(en_find_object, en_founded_objects)
+                # en_find_object, en_founded_objects = self.object_finder.translate_to_english(
+                #     find_object=request.find_object, founded_objects=request.founded_objects
+                # )
+                top_matches = self.object_finder.compare_objects_similarity(request.find_object, request.founded_objects)
 
                 response = {
-                    "original_description": request.find_object,
-                    "translated_description": en_find_object,
                     "top_matches": [{"description": obj, "similarity_score": score} for obj, score in top_matches]
                 }
 
@@ -115,22 +238,42 @@ class MyApp(FastAPI):
             except Exception as e:
                 raise HTTPException(status_code=500, detail=str(e))
 
+        # Search Engine
         @self.post("/create_search_engine", tags=["Search Engine"])
-        def create_search_engine_api(folder_path: str="folders/search_by_image"):
-            self.search_engine_instance.create_search_engine(folder_path)
+        def create_search_engine_api(folder_path: str="https://wdw888lb-7075.uks1.devtunnels.ms/resources/"):
+            url = folder_path
+            image_info = extract_image_info(url)
+
+            # # Save the image info to a CSV file
+            # csv_filename = "folders/image_info.csv"
+            # save_to_csv(image_info, csv_filename)
+
+            # Update the images in the "search_engine_images" folder
+            download_folder = "folders/search_by_image"
+            update_images_folder(image_info, download_folder)
+
+            self.search_engine_instance.create_search_engine('folders/search_by_image')
             return JSONResponse(content={"message": "Search engine created successfully."})
 
         @self.get("/get_similar_images", tags=["Search Engine"])
         def get_similar_images_api(img: str):
-            similar_image_path = self.search_engine_instance.get_similar_images_path(img)
-            return SimilarImagesResponse(similar_images=similar_image_path)
+            try:
+                img_url = img  # Assuming img parameter is the URL of the image
+                similar_image_path = self.search_engine_instance.get_similar_images_path(img_url)
+                return {"similar_images": similar_image_path}
+            except HTTPException as e:
+                return {"error": str(e)}
 
         @self.post("/add_images_to_index", tags=["Search Engine"])
-        def add_images_to_index_api(image_paths: list[str]):
-            result = self.search_engine_instance.add_images_to_index(image_paths)
-            return JSONResponse(content=result)
+        def add_images_to_index_api(image_urls: List[str]):
+            try:
+                # Download images and add them to the search engine index
+                result = self.search_engine_instance.add_images_to_index(image_urls)
+                return JSONResponse(content=result)
+            except HTTPException as e:
+                return JSONResponse(content={"error": str(e)})
 
-        # chang dir
+        # Similar Faces
         @self.get("/find_similar_faces", tags=["Find Similar Faces"])
         async def find_similar_faces_api(photo: str, folder_path: str = "folders/face_identifier/known_face_images"): ############# change path
             face_api = FaceAPI(folder_path)
@@ -138,6 +281,8 @@ class MyApp(FastAPI):
             result = await face_api.find_similar_faces_api(photo)
             return result
 
+
+        # Card
         @self.get("/id", tags=["Card"])
         async def process_image(photo: str):
             try:
@@ -146,7 +291,24 @@ class MyApp(FastAPI):
                 #     temp_image.write(photo.file.read())
 
                 # Process the image using the ImageProcessor
-                result = self.processor.get_final_data(photo)
+                url = photo
+                folder_path = "folders/ids"
+                download_image(url, folder_path)
+                
+                # Extract filename from the URL
+                filename = os.path.basename(urlparse(url).path)
+                print(filename)
+                # # Construct the full path to save the image
+                # file_path = os.path.join(folder_path, filename)
+                # print(file_path)
+                fully_path = "/home/hossam/python_projects/final_app_2/final_app/folders/ids/"
+                img = fully_path + filename
+                # input_path = "path/to/your/input/image.jpg"
+                # output_path = "path/to/your/output/resized_image.jpg"
+                new_size = (700, 480)  # Replace width and height with your desired dimensions
+                print(img)
+                resize_image(img, img, new_size)
+                result = self.processor.get_final_data(img)
 
                 return JSONResponse(content=result, status_code=200)
 
@@ -156,6 +318,25 @@ class MyApp(FastAPI):
 
         @self.get("/tamween_card", tags=["Card"])
         async def extract_id(image_path: str):
+            # # Process the image using the ImageProcessor
+            # url = image_path
+            # folder_path = "folders/tamween_images"
+            # download_image(url, folder_path)
+            
+            # # Extract filename from the URL
+            # filename = os.path.basename(urlparse(url).path)
+            # print(filename)
+            # # # Construct the full path to save the image
+            # # file_path = os.path.join(folder_path, filename)
+            # # print(file_path)
+            # fully_path = "/home/hossam/python_projects/final_app_2/final_app/folders/tamween_images/"
+            # img = fully_path + filename
+            # # input_path = "path/to/your/input/image.jpg"
+            # # output_path = "path/to/your/output/resized_image.jpg"
+            # new_size = (700, 480)  # Replace width and height with your desired dimensions
+            # print(img)
+            # resize_image(img, img, new_size)
+
             id_extractor = IDExtractor(image_path)
             final_data = id_extractor.get_final_data()
             return final_data
@@ -167,15 +348,51 @@ class MyApp(FastAPI):
             #     buffer.write(file.file.read())
 
             try:
-                data = get_final_data(file)
+                url = file
+                folder_path = "folders/license"
+                download_image(url, folder_path)
+                
+                # Extract filename from the URL
+                filename = os.path.basename(urlparse(url).path)
+                print(filename)
+                # # Construct the full path to save the image
+                # file_path = os.path.join(folder_path, filename)
+                # print(file_path)
+                fully_path = "/home/hossam/python_projects/final_app_2/final_app/folders/license/"
+                img = fully_path + filename
+                # input_path = "path/to/your/input/image.jpg"
+                # output_path = "path/to/your/output/resized_image.jpg"
+                new_size = (700, 480)  # Replace width and height with your desired dimensions
+                print(img)
+                resize_image(img, img, new_size)
+                data = get_final_data(img)
                 return JSONResponse(content=data)
             except Exception as e:
                 return JSONResponse(content={"error": str(e)}, status_code=500)
             
         @self.get("/get_plate_num", tags=["Model"])
         async def get_plate(file_path):
-            return get_Letters_and_nums(file_path)
+            url = file_path
+            folder_path = "folders/car_plate"
+            download_image(url, folder_path)
+            
+            # Extract filename from the URL
+            filename = os.path.basename(urlparse(url).path)
+            print(filename)
+            # # Construct the full path to save the image
+            # file_path = os.path.join(folder_path, filename)
+            # print(file_path)
+            fully_path = "/home/hossam/python_projects/final_app_2/final_app/folders/car_plate/"
+            img = fully_path + filename
+            # input_path = "path/to/your/input/image.jpg"
+            # output_path = "path/to/your/output/resized_image.jpg"
+            new_size = (700, 480)  # Replace width and height with your desired dimensions
+            print(img)
+            resize_image(img, img, new_size)
+            return get_Letters_and_nums(img)
         
+
+        # Image enhancement
         @self.get("/apply_median_filter",tags=["Image optimization"])
         async def median_filter(file_path):
             base_name=os.path.basename(file_path)

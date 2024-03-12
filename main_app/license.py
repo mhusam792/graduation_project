@@ -227,7 +227,8 @@ def get_data_paddelOCR(img_path:str):
         name+=i+" "
       if key=='address':
         address+=i+" "
-  return {'id':id,"name":name,"address":address,'traffic unit':traffic_unit,'Nationality':Nationality,'Job':mehna}
+  return {'id':id,"name":name.strip(),"address":address.strip(),
+          'traffic unit':traffic_unit.strip(),'Nationality':Nationality.strip(),'Job':mehna.strip()}
 
 def trans(txt:str):
   """
@@ -279,7 +280,7 @@ def get_final_data(img_path):
   elif x3=="Male":
     x3="ذكر"
   age=Age(x1)
-  data["Birth Date"]=x1.strftime("%Y-%m-%d")
+  data["Birth Date"]=x1.strftime("%Y-%m-%d")   
   data["Birth Place"]=x2
   data["Gender"]=x3
   data["Age"]= f"{age[0]} year and {age[1]} month"
