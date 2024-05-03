@@ -195,7 +195,7 @@ class ImageProcessor:
         address = processed_image[220:270, 370:]
         regin = processed_image[265:315, 370:]
         id_data = [f_name, l_name, address, regin]
-        data = ["frist name", "rest of name", "address", "regin"]
+        data = ["frist_name", "rest_of_name", "address", "regin"]
 
         data_out = {}
 
@@ -230,15 +230,15 @@ class ImageProcessor:
         regin = ""
         for key, item in new_data_out.items():
             for i in item[::-1]:
-                if key == 'frist name':
+                if key == 'frist_name':
                     name += i + " "
-                if key == 'rest of name':
+                if key == 'rest_of_name':
                     rest_of_name += i + " "
                 if key == 'address':
                     address += i + " "
                 if key == 'regin':
                     regin += i + " "
-        return {"frist name": name.strip(), "rest_of_name": rest_of_name.strip(),
+        return {"frist_name": name.strip(), "rest_of_name": rest_of_name.strip(),
                  "address": address.strip(), "regin": regin.strip()}
 
     def get_face(self, img_path):
@@ -284,10 +284,10 @@ class ImageProcessor:
         elif x3 == "Male":
             x3 = "ذكر"
         age = Age(x1)
-        new_data["Birth Date"] = x1.strftime("%Y-%m-%d")
-        new_data["Birth Place"] = x2
-        new_data["Gender"] = x3
-        new_data["Age"] = f"{age[0]} year and {age[1]} month"
+        new_data["birth_date"] = x1.strftime("%Y-%m-%d")
+        new_data["birth_place"] = x2
+        new_data["gender"] = x3
+        new_data["age"] = f"{age[0]} year and {age[1]} month"
 
         # Save the face image to a file
         face_img = self.get_face(img_path)

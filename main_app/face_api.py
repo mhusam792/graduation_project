@@ -7,10 +7,11 @@ import os
 import face_recognition
 
 def get_image_name(image_path):
-    path_components = image_path.split("/")
-    image_name_with_extension = path_components[-1]
-    image_name = os.path.splitext(image_name_with_extension)[0]
-    return image_name
+    basename = os.path.basename(image_path)
+    # path_components = image_path.split("/")
+    # image_name_with_extension = path_components[-1]
+    # image_name = os.path.splitext(image_name_with_extension)[0]
+    return basename
 
 class FaceAPI:
     def __init__(self, folder_path):
@@ -29,16 +30,23 @@ class FaceAPI:
             self.known_face_encodings.append(img_encoding)
             self.known_face_paths.append(img_path)
 
-    async def find_similar_faces_api(self, photo: UploadFile):
-        content = await photo.read()
-        nparr = np.frombuffer(content, np.uint8)
-        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    async def find_similar_faces_api(self, photo: str):
+        # content = await photo.read()
+        # nparr = np.frombuffer(content, np.uint8)
+        # img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        img = cv2.imread(photo)
         rgb_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        photo_encoding = face_recognition.face_encodings(rgb_img)[0]
+        photo_encoding = face_recognition.face_encodings(rgb_img)
+        if len(photo_encoding) > 0:
+            photo_encoding = face_recognition.face_encodings(rgb_img)[0]
 
-        similar_faces = find_similar_faces(photo_encoding, self.known_face_encodings, self.known_face_paths)
+            similar_faces = find_similar_faces(photo_encoding, self.known_face_encodings, self.known_face_paths)
 
-        # Extracting the name of the matched faces
-        names = [get_image_name(path) for path in similar_faces]
+            # Extracting the name of the matched faces
+            names = [get_image_name(path) for path in similar_faces]
 
-        return {"similar_faces": similar_faces, "Name": names}
+            return {# "similar_faces": similar_faces,
+                    "name": names}
+        else:
+            return {"message":"Please make sure that you have posted pictures of a human person or make sure that the person's face is clear",
+                    "name": []} 

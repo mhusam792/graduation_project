@@ -20,6 +20,60 @@ from bs4 import BeautifulSoup
 import csv
 import numpy as np
 from urllib.parse import urlparse
+import shutil
+import face_recognition
+
+def save_images_with_faces(input_folder, output_folder):
+    # Create the output folder if it doesn't exist
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
+    # Loop through files in the input folder
+    for filename in os.listdir(input_folder):
+        file_path = os.path.join(input_folder, filename)
+
+        # Load the image
+        image = face_recognition.load_image_file(file_path)
+
+        # Find all face locations in the image
+        face_locations = face_recognition.face_locations(image)
+
+        # If there's at least one face in the image, save it to the output folder
+        if face_locations:
+            output_path = os.path.join(output_folder, filename)
+            shutil.copy(file_path, output_path)
+
+
+def download_and_save_images_with_faces(image_names, url="https://wdw888lb-7075.uks1.devtunnels.ms/resources", output_folder="folders/faces"):
+    # Create the output folder if it doesn't exist
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
+    # Loop through image names
+    for image_name in image_names:
+        # Fetch the image from the URL
+        image_url = f"{url}/{image_name}"
+        response = requests.get(image_url)
+        
+        # Check if the request was successful
+        if response.status_code == 200:
+            # Load the image
+            image = face_recognition.load_image_file(BytesIO(response.content))
+            
+            # Find all face locations in the image
+            face_locations = face_recognition.face_locations(image)
+            
+            # If there's at least one face in the image, save it to the output folder
+            if face_locations:
+                output_path = os.path.join(output_folder, image_name)
+                with open(output_path, 'wb') as f:
+                    f.write(response.content)
+                print(f"Saved {image_name} with faces.")
+            else:
+                print(f"{image_name} does not contain any faces.")
+        else:
+            print(f"Failed to fetch {image_name} from the URL.")
+
 
 # from text_to_image_genarate import create_img
 
@@ -194,7 +248,8 @@ class MyApp(FastAPI):
                 dict_cls = self.image_predictor.count_cls(cls)
 
                 if len(dict_cls) == 0:
-                    founded_objects = "Sorry, We can't figure out what type of item it is?! \n Please choose from this list the type of item in the image."
+                    print("Sorry, We can't figure out what type of item it is?! \n Please choose from this list the type of item in the image.")
+                    founded_objects = dict_cls
                 else:
                     founded_objects = dict_cls
 
@@ -208,8 +263,45 @@ class MyApp(FastAPI):
                 path_all_images = 'folders/runs/detect/prediction/' ###################
                 image_full_path = os.path.join(path_all_images, file)
                 file_name_without_extension = os.path.splitext(os.path.basename(image_full_path))[0]
+
+                # Categories
+                def categorize_items(item_dict):
+                    type_list = []
+
+                    if len(item_dict) == 0:
+                        return type_list
+
+                    categories = dict(
+                        bags = ["Backpack", "Briefcase", "Handbag", "Suitcase"],
+                        electronics = ["Computer keyboard", "Computer monitor", "Computer mouse", "Tablet computer", "Calculator", "Camera", "Tripod", "Laptop", "Mobile phone", "Headphones", "Flashlight"],
+                        animals = ["Cat", "Dog"],
+                        accessories = ["Fashion accessory", "Earrings", "Necklace"],
+                        hats = ["Hat", "Fedora", "helmet", "Bicycle helmet", "Sun hat", "Swim cap"],
+                        glasses = ["Glasses", "Sunglasses", "Binoculars"],
+                        toys = ["Doll", "Football", "Ball", "Volleyball (Ball)"],
+                        personal_purposes = ["Watch", "wallet", "Bottle", "Mug", "Pencil case", "Book", "Umbrella", "Envelope"],
+                        clothes = ["Tie", "Belt"]
+                    )
+
+                    type_list = []
+
+                    for item, _ in item_dict.items():
+                        found = False
+                        for category, items in categories.items():
+                            if item in items:
+                                type_list.append(category)
+                                found = True
+                                break
+                        if not found:
+                            type_list.append("others")
+
+                    return type_list
+
+                type_list = categorize_items(founded_objects)
+
+                # type_list = categorize_items(founded_objects.keys)
                 
-                data_from_image = {"objects": founded_objects}
+                data_from_image = {"objects": founded_objects, "type": type_list}
 
                 return JSONResponse(content=data_from_image)
 
@@ -253,6 +345,12 @@ class MyApp(FastAPI):
             update_images_folder(image_info, download_folder)
 
             self.search_engine_instance.create_search_engine('folders/search_by_image')
+
+            # save images with faces in folder faces
+            input_folder = "folders/search_by_image"
+            output_folder = "folders/faces"
+            save_images_with_faces(input_folder, output_folder)
+
             return JSONResponse(content={"message": "Search engine created successfully."})
 
         @self.get("/get_similar_images", tags=["Search Engine"])
@@ -269,16 +367,33 @@ class MyApp(FastAPI):
             try:
                 # Download images and add them to the search engine index
                 result = self.search_engine_instance.add_images_to_index(image_urls)
+                
+                download_and_save_images_with_faces(image_names=image_urls)
+                
                 return JSONResponse(content=result)
             except HTTPException as e:
                 return JSONResponse(content={"error": str(e)})
 
         # Similar Faces
         @self.get("/find_similar_faces", tags=["Find Similar Faces"])
-        async def find_similar_faces_api(photo: str, folder_path: str = "folders/face_identifier/known_face_images"): ############# change path
+        async def find_similar_faces_api(photo: str, folder_path: str = "folders/faces"): ############# change path
+            # Process the image using the ImageProcessor
+            url = photo
+            folder_path_2 = "folders/face_identifier_test/"
+            download_image(url, folder_path_2)
+            
+            # Extract filename from the URL
+            filename = os.path.basename(urlparse(url).path)
+            print(filename)
+            # # Construct the full path to save the image
+            # file_path = os.path.join(folder_path, filename)
+            # print(file_path)
+            fully_path = "/home/hossam/python_projects/final_app_2/final_app/folders/face_identifier_test/"
+            img = fully_path + filename
+            
             face_api = FaceAPI(folder_path)
             face_api.load_known_faces()
-            result = await face_api.find_similar_faces_api(photo)
+            result = await face_api.find_similar_faces_api(img)
             return result
 
 
@@ -292,7 +407,7 @@ class MyApp(FastAPI):
 
                 # Process the image using the ImageProcessor
                 url = photo
-                folder_path = "folders/ids"
+                folder_path = "folders/ids/"
                 download_image(url, folder_path)
                 
                 # Extract filename from the URL
@@ -318,26 +433,27 @@ class MyApp(FastAPI):
 
         @self.get("/tamween_card", tags=["Card"])
         async def extract_id(image_path: str):
-            # # Process the image using the ImageProcessor
-            # url = image_path
-            # folder_path = "folders/tamween_images"
-            # download_image(url, folder_path)
+            # Process the image using the ImageProcessor
+            # Process the image using the ImageProcessor
+            url = image_path
+            folder_path = "/home/hossam/python_projects/final_app_2/final_app/folders/tamween_images/"
+            download_image(url, folder_path)
             
-            # # Extract filename from the URL
-            # filename = os.path.basename(urlparse(url).path)
-            # print(filename)
-            # # # Construct the full path to save the image
-            # # file_path = os.path.join(folder_path, filename)
-            # # print(file_path)
-            # fully_path = "/home/hossam/python_projects/final_app_2/final_app/folders/tamween_images/"
-            # img = fully_path + filename
-            # # input_path = "path/to/your/input/image.jpg"
-            # # output_path = "path/to/your/output/resized_image.jpg"
-            # new_size = (700, 480)  # Replace width and height with your desired dimensions
-            # print(img)
-            # resize_image(img, img, new_size)
+            # Extract filename from the URL
+            filename = os.path.basename(urlparse(url).path)
+            print(filename)
+            # # Construct the full path to save the image
+            # file_path = os.path.join(folder_path, filename)
+            # print(file_path)
+            fully_path = "/home/hossam/python_projects/final_app_2/final_app/folders/tamween_images/"
+            img = fully_path + filename
+            # input_path = "path/to/your/input/image.jpg"
+            # output_path = "path/to/your/output/resized_image.jpg"
+            new_size = (700, 480)  # Replace width and height with your desired dimensions
+            print(img)
+            resize_image(img, img, new_size)
 
-            id_extractor = IDExtractor(image_path)
+            id_extractor = IDExtractor(img)
             final_data = id_extractor.get_final_data()
             return final_data
         

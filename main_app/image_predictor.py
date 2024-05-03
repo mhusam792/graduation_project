@@ -12,7 +12,7 @@ class ImagePredictor:
         print('Using Device: ', device)
         model = YOLO(model_path)
         results = model.predict(img_path, device=device,
-                                show_conf=False, conf=.30, project='folders/runs/detect/prediction')
+                                show_conf=False, conf=.45, project='folders/runs/detect/prediction')
         return results, model
 
     def return_cls(self, model_result, trained_model):

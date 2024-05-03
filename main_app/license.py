@@ -175,7 +175,7 @@ def get_data_paddelOCR(img_path:str):
   name = processed_image[105:155, 250:]
   address = processed_image[175:230, 200:]
   id_data = [id,name,address,m,Nationality,mehna]
-  data=["id","name","address","traffic unit","Nationality","mehna"]
+  data=["id","name","address","traffic_unit","nationality","mehna"]
 
 
   data_out={}
@@ -217,9 +217,9 @@ def get_data_paddelOCR(img_path:str):
   Nationality=""
   for key,item in new_data_out.items():
     for i in item[::-1]:
-      if key=="Nationality":
+      if key=="nationality":
         Nationality+=i+' '
-      if key=="traffic unit":
+      if key=="traffic_unit":
         traffic_unit+=i+' '
       if key=="mehna":
         mehna+=i+' '
@@ -227,8 +227,9 @@ def get_data_paddelOCR(img_path:str):
         name+=i+" "
       if key=='address':
         address+=i+" "
-  return {'id':id,"name":name.strip(),"address":address.strip(),
-          'traffic unit':traffic_unit.strip(),'Nationality':Nationality.strip(),'Job':mehna.strip()}
+  return {'id':id.strip(),"name":name.strip(),"address":address.strip(),
+          'traffic_unit':traffic_unit.strip(),'nationality':Nationality.strip()
+          ,'job':mehna.strip()}
 
 def trans(txt:str):
   """
@@ -269,7 +270,7 @@ def get_final_data(img_path):
     if key=="id":
       for i in value:
         id+=str(i)
-  data['name_in_English']=t=trans(data['name'])
+  data['name_in_english']=t=trans(data['name'])
   x=ID(int(id))
   x1=x.get_BirthDate()
   x2=x.get_BirthPlace()
@@ -280,10 +281,10 @@ def get_final_data(img_path):
   elif x3=="Male":
     x3="ذكر"
   age=Age(x1)
-  data["Birth Date"]=x1.strftime("%Y-%m-%d")   
-  data["Birth Place"]=x2
-  data["Gender"]=x3
-  data["Age"]= f"{age[0]} year and {age[1]} month"
+  data["birth_date"]=x1.strftime("%Y-%m-%d")
+  data["birth_place"]=x2
+  data["gender"]=x3
+  data["age"]= f"{age[0]} year and {age[1]} month"
   # base_name=os.path.basename(img_path)
   # (file_Name,ext)=os.path.splitext(base_name)
   # cv2.imwrite("/content/face.png",get_face(img_path))

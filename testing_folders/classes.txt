@@ -1,0 +1,72 @@
+# bags
+Backpack,
+Briefcase,
+Handbag,
+Suitcase
+
+
+# electronics 
+Computer keyboard,
+Computer monitor,
+Computer mouse,
+Tablet computer,
+Calculator,
+Camera,
+Tripod,
+Laptop,
+Mobile phone,
+Headphones,
+Flashlight
+
+
+# animals
+Cat,
+Dog
+
+
+# accessory
+Fashion accessory,
+Earrings,
+Necklace
+
+
+# hat
+Hat,
+Fedora,
+helmet,
+Bicycle helmet,
+Sun hat,
+Swim cap
+
+
+# glasses
+Glasses,
+Sunglasses,
+Binoculars
+
+
+# toys
+Doll,
+Football,
+Ball,
+Volleyball (Ball)
+
+
+# personal purposes
+Watch,
+wallet,
+Bottle,
+Mug,
+Pencil case,
+Book,
+Umbrella,
+Envelope
+
+
+# clothes
+Tie,
+Belt
+
+
+# other
+Bicycle

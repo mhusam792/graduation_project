@@ -190,7 +190,7 @@ def get_Letters_and_nums(im_path) -> dict:
       x2=get_letter(x)
       res2['letters']+=x2+' '
     elif isInt:
-      res2['numbers']+=str(x)+' '
+      res2['numbers']+=str(x)+' '.strip()
   res2['letters']=res2['letters'][::-1]
   if res2['letters']=='':
       res2['letters']="لا توجد حروف على هذه السيارة"
@@ -199,7 +199,7 @@ def get_Letters_and_nums(im_path) -> dict:
     res2['city']=get_c(res2['letters'],res2['numbers'])
 
   car_type=get_car_type(getColor(im_path))
-  res2["car type"]=car_type
+  res2["car_type"]=car_type
 
   return res2
 

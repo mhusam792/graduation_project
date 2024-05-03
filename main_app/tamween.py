@@ -97,13 +97,25 @@ class IDExtractor:
     def __init__(self, image_path):
         self.image_path = image_path
         self.ocr = PaddleOCR(use_angle_cls=True, lang='ar')
-        self.processed_image = cv2.resize(cv2.imread(image_path), (700, 480))
+
+        try:
+            image = cv2.imread(image_path)
+            if image is None:
+                raise ValueError("Failed to load image. Check the file path and format.")
+            self.processed_image = cv2.resize(image, (700, 480))
+        except Exception as e:
+            print(f"Error: {e}")
+            # Handle the error or raise it again based on your application's logic
+            raise
+
+        # self.processed_image = cv2.resize(cv2.imread(image_path), (700, 480))
 
     def preprocess_image(self, region):
         region = cv2.bilateralFilter(region, 11, 17, 17)
         return region
 
     def get_numbers_from_image(self, region):
+        region = cv2.GaussianBlur(region, (3, 3), 0)
         ref = cv2.threshold(region, 0, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)[1]
         kernel = np.ones((2, 2), np.uint8)
         ref = cv2.dilate(ref, kernel, iterations=1)
@@ -233,6 +245,49 @@ class IDExtractor:
             temp.append(i)
         return temp
 
+    def get_final_data(self):
+        data = self.get_data()
+        new_data = {}
+        new_data["id"] = self.get_number(1)
+        new_data["id_2"] = self.get_number(2)
+        for key, item in data.items():
+            new_data[key] = item
+        id_1 = ""
+        id_2 = ""
+        for key, value in new_data.items():
+            if key == "id":
+                for i in value:
+                    id_1 += str(i)
+            elif key == "id_2":
+                for i in value:
+                    id_2 += str(i)
+
+        month = int(id_1[3:5])
+        day = int(id_1[5:7])
+        if month > 12 or month == 0:
+            id_1 = id_1.replace(id_1[3:5], "12")
+            # new_data["problem"] = "Date of birth and age will not be correct"
+        if day > 31 or day == 0:
+            id_1 = id_1.replace(id_1[5:7], "29")
+            # new_data["problem"] = "Date of birth and age will not be correct"
+
+        new_data["id"] = id_1
+        new_data["id_2"] = id_2
+        x = ID(int(id_1))
+        x1 = x.get_BirthDate()
+        x2 = x.get_BirthPlace()
+        x3 = x.get_Gender()
+        if x3 == "Female":
+            x3 = "انثى"
+        elif x3 == "Male":
+            x3 = "ذكر"
+        age = self.Age(x1)
+        new_data["birth_date"] = x1.strftime("%Y-%m-%d")
+        new_data["birth_place"] = x2
+        new_data["gender"] = x3
+        new_data["age"] = f"{age[0]} year and {age[1]} month"
+        return new_data
+
     def Age(self, birth_date):
         now = dt.datetime.today()
         if now.month >= birth_date.month:
@@ -300,46 +355,3 @@ class IDExtractor:
             if key == "id_2":
                 new_dict[key] = new_id_2
         return new_dict
-    
-    def get_final_data(self):
-        data = self.get_data()
-        new_data = {}
-        new_data["id"] = self.get_number(1)
-        new_data["id_2"] = self.get_number(2)
-        for key, item in data.items():
-            new_data[key] = item
-        id_1 = ""
-        id_2 = ""
-        for key, value in new_data.items():
-            if key == "id":
-                for i in value:
-                    id_1 += str(i)
-            elif key == "id_2":
-                for i in value:
-                    id_2 += str(i)
-
-        month = int(id_1[3:5])
-        day = int(id_1[5:7])
-        if month > 12 or month == 0:
-            id_1 = id_1.replace(id_1[3:5], "12")
-            new_data["problem"] = "Date of birth and age will not be correct"
-        if day > 31 or day == 0:
-            id_1 = id_1.replace(id_1[5:7], "29")
-            new_data["problem"] = "Date of birth and age will not be correct"
-
-        new_data["id"] = id_1
-        new_data["id_2"] = id_2
-        x = ID(int(id_1))
-        x1 = x.get_BirthDate()
-        x2 = x.get_BirthPlace()
-        x3 = x.get_Gender()
-        if x3 == "Female":
-            x3 = "انثى"
-        elif x3 == "Male":
-            x3 = "ذكر"
-        age = self.Age(x1)
-        new_data["Birth Date"] = x1.strftime("%Y-%m-%d")
-        new_data["Birth Place"] = x2
-        new_data["Gender"] = x3
-        new_data["Age"] = f"{age[0]} year and {age[1]} month"
-        return new_data
