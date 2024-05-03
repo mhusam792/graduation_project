@@ -31,7 +31,7 @@ def start_ngrok_and_uvicorn(app, port):
 
 if __name__ == "__main__":
     # Replace 'your_authtoken' with the actual authtoken you obtained from ngrok
-    ngrok.set_auth_token('2cWNJ6RxJ7ytZQE5vH6PUin2VW6_63TubrJiwfQNvbrzS6eWS')
+    ngrok.set_auth_token('')
 
     model_full_path = "yolov8_model/result/weights/last.pt"
     upload_folder = ""
